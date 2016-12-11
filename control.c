@@ -8,6 +8,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "semOps.h"
 
 union semun {
   int val;
@@ -23,8 +24,7 @@ int sizeOfStory(){
 }
 
 void clearStory(){
-  int fd = open("story.txt", O_WRONLY | O_TRUNC, 0644);
-  write(fd, "", 0);
+  int fd = open("story.txt", O_CREAT | O_TRUNC, 0644);
   close(fd);
 }
 
@@ -60,20 +60,25 @@ void setup(int key){
     
     //setting semaphore value
     sc = semctl(semid, 0, SETVAL, su);
-    printf("semaphore value set: %d\n", sc);
+    printf("semaphore value set: %d\n", su.val);
 
+    semDown(semid);
+    
     //setting shared memory value
     shmid = shmget(key, 4, IPC_CREAT | 0644);
     printf("shared memory created, id %d\n", shmid);
     shm = shmat(shmid, 0, 0);
     * shm = 0;
+
+    semUp(semid);
     
     printf("shared memory value set: %d\n", * shm);
 
     //make text file
-    fd = open("story.txt", O_CREAT | O_APPEND, 0644);
-    close(fd);
-    printf("file created, fd %d\n", fd);
+    clearStory();
+
+
+    
   }
 }
 
@@ -81,10 +86,13 @@ void end(int key){
   int semid;
   int shmid;
   int sc;
+
+  semid = semget(key, 1, 0);
   
   printStory();
   clearStory();
 
+  semDown(semid);
   //remove shared memory
   shmid = shmget(key, 4, IPC_CREAT | 0644);
   shmctl(shmid, IPC_RMID, 0);
@@ -102,15 +110,17 @@ int main(int argc, char *argv[]){
 
   umask(0);
   
-  if (strncmp(argv[1], "-c", strlen(argv[1])) == 0){
+  if (strncmp(argv[1], "-c", strlen(argv[1])) == 0)
     setup(key);
-  }
-  else if (strncmp(argv[1], "-v", strlen(argv[1])) == 0){
+  
+  else if (strncmp(argv[1], "-v", strlen(argv[1])) == 0)
     printStory();
-  }
-  else if(strncmp(argv[1], "-r", strlen(argv[1])) == 0){
+  
+  else if(strncmp(argv[1], "-r", strlen(argv[1])) == 0)
     end(key);
-  }
+  
+  else 
+    printf("No such flag. Use -c for create, -v for view, or -r for remove.\n");
   
   return 0;
 

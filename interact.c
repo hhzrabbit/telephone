@@ -7,6 +7,7 @@
 #include <sys/sem.h>
 #include <sys/shm.h>
 #include <fcntl.h>
+#include "semOps.h"
 
 void printLastLine(int * shm){
   int fd;
@@ -53,6 +54,10 @@ int main(){
   int * shm;
   int sc;
 
+  semid = semget(key, 1, IPC_CREAT | IPC_EXCL | 0644);
+  
+  semDown(semid);
+
   shmid = shmget(key, 4, 0644);
   shm = shmat(shmid, 0, 0);
 
@@ -60,5 +65,7 @@ int main(){
 
   getAndSaveNextLine(shm);
 
+  semUp(semid);
+  
   return 0;
 }
