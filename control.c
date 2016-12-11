@@ -18,12 +18,19 @@ union semun {
 
 int sizeOfStory(){
   struct stat fileInfo;
-  stat("open.txt", &fileInfo);
+  stat("story.txt", &fileInfo);
   return fileInfo.st_size;
+}
+
+void clearStory(){
+  int fd = open("story.txt", O_WRONLY | O_TRUNC, 0644);
+  write(fd, "", 0);
+  close(fd);
 }
 
 void printStory(){
   int amt = sizeOfStory();
+  printf("amt: %d\n", amt);
   char buf[amt + 1];
   
   int fd = open("story.txt", O_RDONLY, 0644);
@@ -34,67 +41,77 @@ void printStory(){
   close(fd);
 }
 
-void clearStory(){
-  int fd = open("story.txt", O_WRONLY | O_TRUNC, 0644);
-  write(fd, "", 0);
-  close(fd);
-}
-
-int main(int argc, char *argv[]){
-  int key = ftok("README.md", 22);
+void setup(int key){
   int semid;
   int shmid;
   int * shm;
   int sc;
   int fd;
+  union semun su;
+
+  semid = semget(key, 1, IPC_CREAT | IPC_EXCL | 0644);
+
+  if (semid == -1)
+    printf("game already in session.\n");
+
+  else {
+    printf("semaphore created, id %d\n", semid);
+    su.val = 1;
+    
+    //setting semaphore value
+    sc = semctl(semid, 0, SETVAL, su);
+    printf("semaphore value set: %d\n", sc);
+
+    //setting shared memory value
+    shmid = shmget(key, 4, IPC_CREAT | 0644);
+    printf("shared memory created, id %d\n", shmid);
+    shm = shmat(shmid, 0, 0);
+    * shm = 0;
+    
+    printf("shared memory value set: %d\n", * shm);
+
+    //make text file
+    fd = open("story.txt", O_CREAT | O_APPEND, 0644);
+    close(fd);
+    printf("file created, fd %d\n", fd);
+  }
+}
+
+void end(int key){
+  int semid;
+  int shmid;
+  int sc;
+  
+  printStory();
+  clearStory();
+
+  //remove shared memory
+  shmid = shmget(key, 4, IPC_CREAT | 0644);
+  shmctl(shmid, IPC_RMID, 0);
+  printf("shared memory removed\n");
+  
+  //removing a semaphore
+  semid = semget(key, 1, 0);
+  sc = semctl(semid, 0, IPC_RMID);
+  printf("semaphore removed: %d\n", sc);
+    
+}
+
+int main(int argc, char *argv[]){
+  int key = ftok("README.md", 22);
 
   umask(0);
   
   if (strncmp(argv[1], "-c", strlen(argv[1])) == 0){
-    semid = semget(key, 1, IPC_CREAT | IPC_EXCL | 0644);
-    if (semid == -1)
-      printf("game already in session.\n");
-    else {
-      printf("semaphore created, id %d\n", semid);
-      union semun su;
-      su.val = 1;
-      //setting semaphore value
-      sc = semctl(semid, 0, SETVAL, su);
-      printf("semaphore value set: %d\n", sc);
-
-      shmid = shmget(key, 4, IPC_CREAT | 0644);
-      printf("shared memory created, id %d\n", shmid);
-      shm = shmat(shmid, 0, 0);
-      * shm = 0;
-    
-      printf("shared memory value set: %d\n", * shm);
-
-      fd = open("story.txt", O_CREAT | O_APPEND, 0644);
-      close(fd);
-      printf("file created, fd %d\n", fd);
-    }
+    setup(key);
   }
   else if (strncmp(argv[1], "-v", strlen(argv[1])) == 0){
     printStory();
   }
   else if(strncmp(argv[1], "-r", strlen(argv[1])) == 0){
-    struct shmid_ds d;
-
-    //remove shared memory
-    shmid = shmget(key, 4, IPC_CREAT | 0644);
-    shmctl(shmid, IPC_RMID, &d);
-    
-    semid = semget(key, 1, 0);
-
-    //removing a semaphore
-    sc = semctl(semid, 0, IPC_RMID);
-    printf("semaphore removed: %d\n", sc);
-
-    printStory();
-
-    clearStory();
-
+    end(key);
   }
+  
   return 0;
 
 }
