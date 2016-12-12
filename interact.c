@@ -20,7 +20,7 @@ void printLastLine(int * shm){
   read(fd, &buf, amtToRead);
   buf[amtToRead] = 0;
 
-  printf("Last line of story: %s", buf);
+  printf("Last line of story: %s\n", buf);
   close(fd);
 
 }
@@ -42,7 +42,7 @@ void getAndSaveNextLine(int * shm){
   write(fd, d, lenInput);
   close(fd);
 
-  printf("Line added: %s", d);
+  printf("Line added: %s\n", d);
 
 }
 
@@ -53,18 +53,20 @@ int main(){
   int * shm;
   int sc;
 
-  semid = semget(key, 1, IPC_CREAT | IPC_EXCL | 0644);
+  semid = semget(key, 1,  0644);
+  if (semid == -1)
+    printf("game not in session. type ./control -c to start a game.\n");
+  else {
+    semDown(semid);
+    
+    shmid = shmget(key, 4, 0644);
+    shm = shmat(shmid, 0, 0);
+    
+    printLastLine(shm);
+    
+    getAndSaveNextLine(shm);
   
-  semDown(semid);
-
-  shmid = shmget(key, 4, 0644);
-  shm = shmat(shmid, 0, 0);
-
-  printLastLine(shm);
-
-  getAndSaveNextLine(shm);
-
-  semUp(semid);
-  
+    semUp(semid);
+  }
   return 0;
 }
