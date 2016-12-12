@@ -30,7 +30,6 @@ void clearStory(){
 
 void printStory(){
   int amt = sizeOfStory();
-  printf("amt: %d\n", amt);
   char buf[amt + 1];
   
   int fd = open("story.txt", O_RDONLY, 0644);
@@ -76,8 +75,6 @@ void setup(int key){
 
     //make text file
     clearStory();
-
-
     
   }
 }
@@ -101,7 +98,7 @@ void end(int key){
   //removing a semaphore
   semid = semget(key, 1, 0);
   sc = semctl(semid, 0, IPC_RMID);
-  printf("semaphore removed: %d\n", sc);
+  printf("semaphore removed\n");
     
 }
 
