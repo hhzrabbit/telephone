@@ -36,7 +36,7 @@ void printStory(){
   read(fd, &buf, sizeOfStory());
   buf[amt] = 0;
   
-  printf("Story: %s\n", buf);
+  printf("Story:\n%s\n", buf);
   close(fd);
 }
 

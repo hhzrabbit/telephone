@@ -20,8 +20,7 @@ void printLastLine(int * shm){
   read(fd, &buf, amtToRead);
   buf[amtToRead] = 0;
 
-  printf("Last line of story:\n");
-  printf("%s\n", buf);
+  printf("Last line of story: %s", buf);
   close(fd);
 
 }
@@ -43,7 +42,7 @@ void getAndSaveNextLine(int * shm){
   write(fd, d, lenInput);
   close(fd);
 
-  printf("Line added: %s\n", d);
+  printf("Line added: %s", d);
 
 }
 
