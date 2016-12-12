@@ -84,19 +84,18 @@ void end(int key){
   int shmid;
   int sc;
 
-  semid = semget(key, 1, 0);
+  semid = semget(key, 1, 0644);
   
   printStory();
   clearStory();
 
   semDown(semid);
   //remove shared memory
-  shmid = shmget(key, 4, IPC_CREAT | 0644);
+  shmid = shmget(key, 4, 0644);
   shmctl(shmid, IPC_RMID, 0);
   printf("shared memory removed\n");
   
   //removing a semaphore
-  semid = semget(key, 1, 0);
   sc = semctl(semid, 0, IPC_RMID);
   printf("semaphore removed\n");
     
